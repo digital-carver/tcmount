@@ -1,0 +1,52 @@
+#!/bin/bash
+if [[ "$1" != "m" && "$1" != "u" ]] || [ ${#2} -lt 1 ] || [[ "$1" != "u" && ${#3} -lt 1 ]]; then
+        echo "tcmount - mount or unmount a TrueCrypt volume"
+        echo "usage: $0 [m|u] mapmountname [path/to/file/or/device]"
+        echo "    m - mounts a volume container file/device"
+        echo "    u - unmounts a volume"
+        echo "mapmountname will be used to mkdirs in /media/`whoami` and /dev/mapper"
+        echo
+        exit 1
+fi
+
+mountit () {
+        local uid=`id -u`
+        local user=`whoami`
+        local device=`sudo losetup -f`
+        local passwd=
+        local tcvol="$2"
+        local mapping=$1
+        if [ ! -e "$tcvol" ]; then echo "error: volume "$tcvol" does not exist"; exit 1; fi
+        if [ -d "$tcvol" ]; then echo "error: volume "$tcvol" is directory"; exit 1; fi
+        if [ ! -d "/home/$user/.tcmount" ]; then mkdir "/home/$user/.tcmount"; fi
+        if [ -e "/home/$user/$mapping" ]; then echo "error: mapping already exists for $mapping"; exit 1; fi
+        echo "preparing to mount $tcvol to /media/$user/$mapping"
+        echo $device > /home/$user/.tcmount/$mapping
+        sudo mkdir /media/$user/$mapping
+        sudo losetup $device "$tcvol"
+        sudo tcplay --map=$mapping --device=$device
+        sudo mount -o uid=$uid /dev/mapper/$mapping /media/$user/$mapping
+        exit 0
+}
+
+unmountit () {
+        local uid=`id -u`
+        local user=`whoami`
+        local mapping=$1
+        if [ ! -d "/home/$user/.tcmount" ]; then echo "error: ~/.tcmount directory missing"; exit 1; fi
+        if [ ! -f "/home/$user/.tcmount/$mapping" ]; then echo "error: ~/.tcmount/$mapping file (contains loop name) is missing"; exit 1; fi
+        local device=`cat /home/$user/.tcmount/$mapping`
+        if [ ! -d "/media/$user/$mapping" ]; then echo "error: /media/$user/$mapping is not a directory or does not exist"; exit 1; fi
+        echo "preparing to unmount /media/$user/$mapping"
+        sudo umount /media/$user/$mapping
+        sudo tcplay -u /dev/mapper/$mapping
+        rm /home/$user/.tcmount/$mapping
+        sudo rmdir /media/$user/$mapping
+        exit 0
+}
+
+if [ "$1" == "m" ]; then
+        mountit $2 "$3"
+elif [ "$1" == "u" ]; then
+        unmountit $2
+fi
