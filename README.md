@@ -1,8 +1,8 @@
-tcmount - mount or unmount a TrueCrypt volume
+**tcmount** - mount or unmount a TrueCrypt volume
 
-Usage: tcmount [m|u] <mapmountname> [path/to/file/or/device]
-m - mounts a volume container file/device
-u - unmounts a volume
+Usage: tcmount [m|u] \<mapmountname\> [path/to/file/or/device]      
+m - mounts a volume container file/device      
+u - unmounts a volume      
 mapmountname will be used to mkdirs in /media/`whoami` and /dev/mapper
 
 All credits belong to Jonathan Voss on the StackExchange network, who linked to
